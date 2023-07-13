@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import GUI from 'lil-gui';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const gui = new GUI();
 
@@ -21,24 +22,26 @@ camera.position.z = 2;
 const scene = new THREE.Scene();
 
 
-  const color = 0xFFFFFF;
-  const intensity = 1;
-  const light = new THREE.DirectionalLight(color, intensity);
-  light.position.set(-1, 2, 4);
-  scene.add(light);
+const color = 0xFFFFFF;
+const intensity = 1;
+const light = new THREE.DirectionalLight(color, intensity);
+light.position.set(-1, 2, 4);
+scene.add(light);
 
+let mixer
+const gltfLoader = new GLTFLoader();
+gltfLoader.load('./animatedBox.glb', (gltf) => {
+  const model = gltf.scene;
+  scene.add(model);
+  mixer = new THREE.AnimationMixer(model)
+  const clips = gltf.animations
 
-const boxWidth = 1;
-const boxHeight = 1;
-const boxDepth = 1;
-const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
-const material = new THREE.MeshBasicMaterial({color: 0x44aa88});
-const cube = new THREE.Mesh(geometry, material);
-scene.add(cube);
+  const clip = THREE.AnimationClip.findByName(clips, 'wiggle')
+  const action = mixer.clipAction(clip)
+  action.play()
+});
 
-gui.add(cube.position, 'x', -1, 1)
-gui.add(cube.position, 'y', -1, 1)
-gui.add(cube.position, 'z', -1, 1)
+const clock = new THREE.Clock()
 
 function render(time) {
   time *= 0.001;  // convert time to seconds
@@ -48,12 +51,10 @@ function render(time) {
     camera.aspect = canvas.clientWidth / canvas.clientHeight;
     camera.updateProjectionMatrix();
   }
- 
-  cube.rotation.x = time;
-  cube.rotation.y = time;
- 
+  if (mixer)
+  mixer.update(clock.getDelta())
   renderer.render(scene, camera);
- 
+
   requestAnimationFrame(render);
 }
 
